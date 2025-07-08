@@ -3,7 +3,7 @@ require 'fileutils'
 require 'dotenv'
 
 num_days = 30 # How many days back to look at to establish a baseline for what is a normal gap
-max_allowed_ratio = 1 # ratio between longest gap seen in the num_days period and current gap
+max_allowed_ratio = 4 # ratio between longest gap seen in the num_days period and current gap
 min_required_count = 30 # only look at entities with at least this number of states reported in the period
 min_gap_to_care_about = 5 * 60 # Time in seconds for the minimum gap we should notify about
 min_state_id_seen_filename = 'min_state_id_seen.txt'
