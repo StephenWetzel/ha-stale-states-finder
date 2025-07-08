@@ -1,5 +1,5 @@
 # ha-stale-states-finder
-Detect and notify when Home Assistant sensors that regularly update sudden get stuck in the same state.
+Detect and notify when Home Assistant sensors that regularly update get stuck in the same state.
 
 ## Motivation
 I have a number of battery powered zigbee sensors that I use with Home Assistant, and when the battery is getting low in them, they will sometimes simply get stuck with their last reported state.  Instead of reporting `Unavailable` they will just report the same state forever.  For example, a temperature sensor which sees small fluctuations constantly will just suddenly get frozen at 73°F for a month.  Eventually they do go `Unavailable`, but sometimes it will take a very long time to happen, and all the while I assume the sensor is working, when it is not.
@@ -53,6 +53,9 @@ max_allowed_ratio = 4 # ratio between longest gap seen in the num_days period an
 min_required_count = 30 # only look at entities with at least this number of states reported in the period
 min_gap_to_care_about = 5 * 60 # Time in seconds for the minimum gap we should notify about
 ```
+
+### Watchman
+There's an excellent HACS integration called [Watchman](https://github.com/dummylabs/thewatchman), which will detect when any entity you are using in an automation or a dashboard becomes `Unavailable`.  I highly recommend using that integration if you aren't already.  This script is intended to notify when entities get stuck on seemingly "good" values, not when they simply become `Unavailable`.
 
 ### A warning
 This script directly accesses the home assistant database, which is not supported or recommended by the Home Assistant project.  It only does some basic read only queries, but you use it at your own risk, with the understanding it could corrupt your database and cause you to lose all your data.  Also, if there are any schema changes to the database it could suddenly break this script.  I will likely update it when I notice this, but I don't always run the latest version of Home Assistant, so it might take me a while to notice.
