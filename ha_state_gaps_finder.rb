@@ -17,7 +17,8 @@ FileUtils.touch ignored_entity_ids_filename
 min_state_id = File.read(min_state_id_seen_filename).to_i
 ignored_entity_ids = File.readlines(ignored_entity_ids_filename).map(&:chomp)
 
-conn = PG.connect(dbname: 'homeassistant')
+# TODO: Move connection details into env
+conn = PG.connect(dbname: 'homeassistant', port: 5432)
 date_result = conn.exec "select current_date, (current_date - interval '#{num_days} days')::date as oldest_date, date_part('hour', current_timestamp) as current_hour"
 current_date = date_result.first['current_date']
 oldest_date = date_result.first['oldest_date']
@@ -47,6 +48,7 @@ stale_states = conn.exec stale_states_query
 min_state_id_seen = Float::INFINITY
 problem_entity_count = 0
 message_body = ''
+stale_entity_ids = []
 stale_states.each do |row|
   entity_id = row['entity_id']
   count = row['count'].to_i
@@ -57,6 +59,7 @@ stale_states.each do |row|
   puts message
   message_body += message
   message_body += "\n"
+  stale_entity_ids.append(entity_id)
   problem_entity_count += 1
 end
 
@@ -65,6 +68,8 @@ File.write(min_state_id_seen_filename, min_state_id_seen)
 
 exit unless problem_entity_count > 0
 exit if $DEBUG
+message_body += "\n\nStale Entity IDs:\n"
+message_body += stale_entity_ids.join("\n")
 
 from = ENV['FROM_EMAIL_ADDRESS']
 to = ENV['TO_EMAIL_ADDRESS']
