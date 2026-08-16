@@ -8,14 +8,17 @@ min_required_count = 30 # only look at entities with at least this number of sta
 min_gap_to_care_about = 5 * 60 # Time in seconds for the minimum gap we should notify about
 min_state_id_seen_filename = 'min_state_id_seen.txt'
 ignored_entity_ids_filename = 'ignored_entity_ids.txt'
+watched_entity_ids_filename = 'watched_entity_ids.txt'
 ignored_states = %w[unavailable unknown] # TODO: Implement this
 Dotenv.load
 Dotenv.require_keys('FROM_EMAIL_ADDRESS', 'TO_EMAIL_ADDRESS')
 
 FileUtils.touch min_state_id_seen_filename
 FileUtils.touch ignored_entity_ids_filename
+FileUtils.touch watched_entity_ids_filename
 min_state_id = File.read(min_state_id_seen_filename).to_i
 ignored_entity_ids = File.readlines(ignored_entity_ids_filename).map(&:chomp)
+watched_entity_ids = File.readlines(watched_entity_ids_filename).map(&:chomp)
 
 # TODO: Move connection details into env
 conn = PG.connect(dbname: 'homeassistant', port: 5432)
@@ -24,6 +27,8 @@ current_date = date_result.first['current_date']
 oldest_date = date_result.first['oldest_date']
 current_hour = date_result.first['current_hour'].to_i
 
+puts "Found #{watched_entity_ids.count} entity_ids in #{watched_entity_ids_filename}, limiting search to only those"
+puts "Found #{ignored_entity_ids.count} entity_ids in #{ignored_entity_ids_filename}, excluding those from search"
 puts "Searching for states between #{oldest_date} and #{current_date}, current hour #{current_hour}"
 stale_states_query = <<~QUERY
   select 
@@ -44,6 +49,7 @@ stale_states_query = <<~QUERY
   order by 4 desc
 QUERY
 stale_states = conn.exec stale_states_query
+puts "Found #{stale_states.count} entities in DB, checking for staleness"
 
 min_state_id_seen = Float::INFINITY
 problem_entity_count = 0
@@ -53,6 +59,7 @@ stale_states.each do |row|
   entity_id = row['entity_id']
   count = row['count'].to_i
   min_state_id_seen = row['min_state_id'].to_i if row['min_state_id'].to_i < min_state_id_seen && row['min_state_id'].to_i > 0
+  next if (watched_entity_ids.count > 0) && (!watched_entity_ids.include? entity_id)
   next if ignored_entity_ids.include? entity_id
   next unless row['ratio'].to_f > max_allowed_ratio && count > min_required_count && row['current_update_duration_seconds'].to_f > min_gap_to_care_about
   message = "Entity #{entity_id} currently hasn't had an update in #{row['current_update_duration']}, with the previous longest gap seen of #{row['longest_update_duration']} (ratio #{row['ratio']}) and #{count} total updates seen."

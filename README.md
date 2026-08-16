@@ -34,7 +34,7 @@ Lowest state_id seen: 237995524
 
 ## Notes
 ### Text files
-There are two text files which will be created the first time the you run the script.
+There are three text files which will be created the first time the you run the script.
 
 `min_state_id_seen.txt` is just the id of the oldest `state_id` the script should consider.  This greatly speeds up the script if you have a large database.  You may want to set it manually for the first run if the script takes a very long time to run, but the script will set it if you don't, and will keep it up to date after that.  Note that if you increase the `num_days` variable in the script, then you will need to edit the id stored in that file, or else the script won't look back any further that the previous limit.
 
@@ -44,6 +44,10 @@ media_player.firefox
 remote.firefox
 media_player.shield_4
 ```
+
+`watched_entity_ids.txt` is a list of all `entity_ids` that the script should care about.  If it's not present, or empty then the script will look at every `entity_id` (except those excluded by the `ignored_entity_ids.txt` file).  If an `entity_id` is present in both the `ignored_entity_ids.txt` file and the `watched_entity_ids.txt` file then it will be skipped.
+
+See the note in the Watchman section about a script which can populate this file with all your used `entity_ids` if you use Watchman.
 
 ### Variables with default values
 The script has the following 4 variables set within it.  You can edit them as you see fit, although these values seem to work well for me.
@@ -56,6 +60,8 @@ min_gap_to_care_about = 5 * 60 # Time in seconds for the minimum gap we should n
 
 ### Watchman
 There's an excellent HACS integration called [Watchman](https://github.com/dummylabs/thewatchman), which will detect when any entity you are using in an automation or a dashboard becomes `Unavailable`.  I highly recommend using that integration if you aren't already.  This script is intended to notify when entities get stuck on seemingly "good" values, not when they simply become `Unavailable`.
+
+I've now made a companion script (`get_watched_entity_ids_from_watchman.rb`) that will look for the watchman database and pull out all the entities it is watching into a file named `watched_entity_ids.txt`.  The main script will then only alert about stale entities if they are present in that list.  This script assumes your watchman database is at `~/.homeassistant/.storage/watchman_v2.db`.  If it's not, you'll have to modify it.  If you don't use watchman you can still use the `watched_entity_ids.txt` file, you just have to populate it manually, or some other way.
 
 ### A warning
 This script directly accesses the home assistant database, which is not supported or recommended by the Home Assistant project.  It only does some basic read only queries, but you use it at your own risk, with the understanding it could corrupt your database and cause you to lose all your data.  Also, if there are any schema changes to the database it could suddenly break this script.  I will likely update it when I notice this, but I don't always run the latest version of Home Assistant, so it might take me a while to notice.
